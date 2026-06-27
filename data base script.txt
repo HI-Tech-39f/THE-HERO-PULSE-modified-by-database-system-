@@ -1,0 +1,222 @@
+-- CREATE DATABASE The_Hero_Pulse;
+-- USE The_Hero_Pulse;
+
+/* CREATE TABLE Users (
+    UserID INT AUTO_INCREMENT PRIMARY KEY,
+    Username VARCHAR(50) NOT NULL,
+    Email VARCHAR(100) NOT NULL UNIQUE,
+    Password VARCHAR(255) NOT NULL,
+    Role ENUM('Donor', 'Recipient', 'Hospital', 'Admin') NOT NULL,
+    RegistrationDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+); */
+
+/*CREATE TABLE Blood_Groups (
+    GroupID INT AUTO_INCREMENT PRIMARY KEY,
+    GroupName VARCHAR(5) NOT NULL UNIQUE
+); */
+
+/*INSERT INTO Blood_Groups (GroupName) VALUES 
+('A+'), ('A-'), 
+('B+'), ('B-'), 
+('AB+'), ('AB-'), 
+('O+'), ('O-');*/
+
+/*CREATE TABLE Hospitals (
+    HospitalID INT AUTO_INCREMENT PRIMARY KEY,
+    UserID INT NOT NULL,
+    Name VARCHAR(150) NOT NULL,
+    Address TEXT NOT NULL,
+    ContactNumber VARCHAR(20) NOT NULL,
+    IsVerified BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+);*/
+
+/*CREATE TABLE Donors (
+    DonorID INT AUTO_INCREMENT PRIMARY KEY,
+    UserID INT NOT NULL,
+    GroupID INT NOT NULL,
+    City VARCHAR(100) NOT NULL,
+    AvailabilityStatus ENUM('Active', 'Inactive') DEFAULT 'Active',
+    LastDonationDate DATE NULL,
+    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE,
+    FOREIGN KEY (GroupID) REFERENCES Blood_Groups(GroupID)
+);*/
+
+/*
+-- 5. Recipients Table (Patients)
+CREATE TABLE Recipients (
+    RecipientID INT AUTO_INCREMENT PRIMARY KEY,
+    UserID INT NOT NULL,
+    MedicalHistory TEXT,
+    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+);
+
+-- 6. Blood_Inventory Table (Hospital ka Stock)
+CREATE TABLE Blood_Inventory (
+    InventoryID INT AUTO_INCREMENT PRIMARY KEY,
+    HospitalID INT NOT NULL,
+    GroupID INT NOT NULL,
+    Quantity INT DEFAULT 0,
+    LastUpdated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (HospitalID) REFERENCES Hospitals(HospitalID) ON DELETE CASCADE,
+    FOREIGN KEY (GroupID) REFERENCES Blood_Groups(GroupID)
+);
+
+-- 7. Donation_Requests Table (Khooni ki Demand)
+CREATE TABLE Donation_Requests (
+    RequestID INT AUTO_INCREMENT PRIMARY KEY,
+    HospitalID INT NOT NULL,
+    RecipientID INT NULL, 
+    GroupID INT NOT NULL,
+    Urgency ENUM('Normal', 'Urgent', 'Critical') DEFAULT 'Normal',
+    Status ENUM('Pending', 'In Progress', 'Fulfilled', 'Cancelled') DEFAULT 'Pending',
+    RequestDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (HospitalID) REFERENCES Hospitals(HospitalID) ON DELETE CASCADE,
+    FOREIGN KEY (RecipientID) REFERENCES Recipients(RecipientID) ON DELETE SET NULL,
+    FOREIGN KEY (GroupID) REFERENCES Blood_Groups(GroupID)
+);
+
+-- 8. Request_Matches Table (System ki Auto-Matching)
+CREATE TABLE Request_Matches (
+    MatchID INT AUTO_INCREMENT PRIMARY KEY,
+    RequestID INT NOT NULL,
+    DonorID INT NOT NULL,
+    Status ENUM('Pending', 'Accepted', 'Declined') DEFAULT 'Pending',
+    MatchDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (RequestID) REFERENCES Donation_Requests(RequestID) ON DELETE CASCADE,
+    FOREIGN KEY (DonorID) REFERENCES Donors(DonorID) ON DELETE CASCADE
+);
+
+-- 9. Donations Table (Final Record / Audit Trail)
+CREATE TABLE Donations (
+    DonationID INT AUTO_INCREMENT PRIMARY KEY,
+    DonorID INT NOT NULL,
+    RequestID INT NOT NULL,
+    Units INT DEFAULT 1,
+    DonationDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (DonorID) REFERENCES Donors(DonorID),
+    FOREIGN KEY (RequestID) REFERENCES Donation_Requests(RequestID)
+);
+*/
+
+/*CREATE TABLE Blood_Compatibility (
+    CompatibilityID INT AUTO_INCREMENT PRIMARY KEY,
+    DonorGroupID INT NOT NULL,
+    RecipientGroupID INT NOT NULL,
+    FOREIGN KEY (DonorGroupID) REFERENCES Blood_Groups(GroupID) ON DELETE CASCADE,
+    FOREIGN KEY (RecipientGroupID) REFERENCES Blood_Groups(GroupID) ON DELETE CASCADE,
+    -- Ek unique constraint taake same combination dobara insert na ho jaye
+    UNIQUE KEY Unique_Match (DonorGroupID, RecipientGroupID) 
+);
+
+-- Medical Compatibility Rules Data
+INSERT INTO Blood_Compatibility (DonorGroupID, RecipientGroupID) VALUES
+-- O- (ID 8) is Universal Donor (Sab ko de sakta hai)
+(8, 1), (8, 2), (8, 3), (8, 4), (8, 5), (8, 6), (8, 7), (8, 8),
+
+-- O+ (ID 7) can donate to: O+, A+, B+, AB+
+(7, 7), (7, 1), (7, 3), (7, 5),
+
+-- A- (ID 2) can donate to: A-, A+, AB-, AB+
+(2, 2), (2, 1), (2, 6), (2, 5),
+
+-- A+ (ID 1) can donate to: A+, AB+
+(1, 1), (1, 5),
+
+-- B- (ID 4) can donate to: B-, B+, AB-, AB+
+(4, 4), (4, 3), (4, 6), (4, 5),
+
+-- B+ (ID 3) can donate to: B+, AB+
+(3, 3), (3, 5),
+
+-- AB- (ID 6) can donate to: AB-, AB+
+(6, 6), (6, 5),
+
+-- AB+ (ID 5) is Universal Recipient (Sirf apne aap ko de sakta hai)
+(5, 5);
+
+
+-- 1. System ka pehla Admin Account banayen
+INSERT INTO Users (Username, Email, Password, Role) 
+VALUES ('SuperAdmin', 'admin@heropulse.com', 'admin123', 'Admin');
+
+-- 2. Ek Test Hospital ka Account banayen
+INSERT INTO Users (Username, Email, Password, Role) 
+VALUES ('JinnahHospital', 'contact@jinnah.com', 'hospital123', 'Hospital');
+
+-- 3. Jinnah Hospital ki details Hospitals table mein dalein (Yahan UserID 2 use ho raha hai jo upar create hua)
+INSERT INTO Hospitals (UserID, Name, Address, ContactNumber, IsVerified) 
+VALUES (2, 'Jinnah Post Graduate Medical Centre', 'Rafiqui Shaheed Road, Karachi', '021-99201300', TRUE);
+
+-- 4. Jinnah Hospital ki Blood Inventory ko 0 se initialize karein (Taake threshold alerts test kiye ja sakein)
+-- Yahan HospitalID 1 hai, aur GroupID 1 se 8 tak aayenge (jo Blood_Groups table mein hain)
+INSERT INTO Blood_Inventory (HospitalID, GroupID, Quantity) VALUES 
+(1, 1, 0), (1, 2, 0), (1, 3, 0), (1, 4, 0), 
+(1, 5, 0), (1, 6, 0), (1, 7, 0), (1, 8, 0);
+*/
+
+/*
+CREATE TABLE Donor_Eligibility_Log (
+    LogID INT AUTO_INCREMENT PRIMARY KEY,
+    DonorID INT NOT NULL,
+    CheckedDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    IsEligible BOOLEAN NOT NULL,
+    Reason VARCHAR(255),
+    FOREIGN KEY (DonorID) REFERENCES Donors(DonorID) ON DELETE CASCADE
+);
+
+CREATE TABLE Inventory_Alert (
+    AlertID INT AUTO_INCREMENT PRIMARY KEY,
+    HospitalID INT NOT NULL,
+    GroupID INT NOT NULL,
+    CurrentUnits INT NOT NULL,
+    ThresholdLimit INT DEFAULT 5,
+    AlertStatus ENUM('Active', 'Resolved') DEFAULT 'Active',
+    AlertDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (HospitalID) REFERENCES Hospitals(HospitalID) ON DELETE CASCADE,
+    FOREIGN KEY (GroupID) REFERENCES Blood_Groups(GroupID)
+);
+*/
+
+/*USE The_Hero_Pulse;
+
+ALTER TABLE Users 
+ADD COLUMN DOB DATE NULL AFTER Role;*/
+
+/*USE The_Hero_Pulse;
+
+ALTER TABLE Donors 
+ADD COLUMN Weight INT NULL AFTER GroupID;*/
+
+
+
+/*-- Donations table mein HospitalID add kar rahe hain
+ALTER TABLE Donations
+ADD COLUMN HospitalID INT NULL AFTER RequestID,
+ADD FOREIGN KEY (HospitalID) REFERENCES Hospitals(HospitalID);*/
+
+/*USE The_Hero_Pulse;
+
+-- Donation_Requests aur Request_Matches ke Status column ko bada (VARCHAR 50) kar rahe hain
+ALTER TABLE Donation_Requests MODIFY Status VARCHAR(50) DEFAULT 'Pending';
+ALTER TABLE Request_Matches MODIFY Status VARCHAR(50) DEFAULT 'Pending';*/
+
+/*USE The_Hero_Pulse;
+
+-- HospitalID aur RecipientID dono ko NULL allow kar rahe hain
+ALTER TABLE Donation_Requests MODIFY HospitalID INT NULL;
+ALTER TABLE Donation_Requests MODIFY RecipientID INT NULL;*/
+
+/*USE The_Hero_Pulse;
+
+CREATE TABLE ContactMessages (
+    Id INT AUTO_INCREMENT PRIMARY KEY,
+    FullName VARCHAR(100),
+    Email VARCHAR(150),
+    Phone VARCHAR(20),
+    Role VARCHAR(50),
+    Subject VARCHAR(200),
+    Message TEXT,
+    SubmittedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+);*/
+
